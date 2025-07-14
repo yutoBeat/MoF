@@ -34,22 +34,22 @@ TARGET_DIR="."
 source "$HOME/.config/MoF.conf"
 
 Show_help() {
-    echo
-    echo "MoF - Media Organizer"
-    echo "  Organizes files by type"
-    echo "Usage: Mof [options] [Directory]"
-    echo
-    echo "Options:"
-    echo "  -h,  --help       Show this messsage"
-    echo "  -l,  --local      Place sorted files into local folders instead of system folders"
-    echo "  -s,  --subfiles   Include subfiles in search"
-    echo "  -sf, --smartfind  Only include folders if all their subfolders contain one media type only"
-    echo "  -v,  --verbose    More detailed output"
-    echo "  -f,  --flatten    Flatten file system (ignores file structure)"
-    echo "  -b,  --blender    FOR ME hehe"
-    echo
-    echo "Notes:"
-    echo " - If no directory is specifed the current directory is used (can be changed in config)"
+  echo
+  echo "MoF - Media Organizer"
+  echo "  Organizes files by type"
+  echo "Usage: Mof [options] [Directory]"
+  echo
+  echo "Options:"
+  echo "  -h,  --help       Show this messsage"
+  echo "  -l,  --local      Place sorted files into local folders instead of system folders"
+  echo "  -s,  --subfiles   Include subfiles in search"
+  echo "  -sf, --smartfind  Only include folders if all their subfolders contain one media type only"
+  echo "  -v,  --verbose    More detailed output"
+  echo "  -f,  --flatten    Flatten file system (ignores file structure)"
+  echo "  -b,  --blender    FOR ME hehe"
+  echo
+  echo "Notes:"
+  echo " - If no directory is specifed the current directory is used (can be changed in config)"
 }
 
 # Scan options
