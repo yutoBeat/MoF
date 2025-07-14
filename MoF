@@ -1,9 +1,10 @@
-#! /usr/bin/zsh
 
-picturesdir="$HOME/Pictures/"
-musicdir="$HOME/Music/"
-videosdir="$HOME/Videos/"
-documentsdir="$HOME/Documents/"
+#!/usr/bin/env zsh
+
+picturesdir="$HOME/Pictures"
+musicdir="$HOME/Music"
+videosdir="$HOME/Videos"
+documentsdir="$HOME/Documents"
 blenderdir="/media/spare/blender stuff/blender/blender voice"
 
 # lists
@@ -12,6 +13,13 @@ musics=()
 videos=()
 documents=()
 blenders=()
+
+#count 
+pcount=0 
+mcount=0
+vcount=0
+dcount=0
+bcount=0
 
 # Define color variables
 RED='\033[31m'
@@ -29,6 +37,7 @@ SMART=false
 VERBOSE=false
 FLATTEN=false
 blender=false
+HUMAN=false
 TARGET_DIR="."
 
 
@@ -37,26 +46,27 @@ CONFIG_FILE="$HOME/.config/MoF.conf"
 if [[ -f "$CONFIG_FILE" ]]; then
   source "$CONFIG_FILE"
 else
-  echo "${YELLOW}[WARN] No config file found at $CONFIG_FILE${RESET}"
+  echo -e "${YELLOW}[WARN] No config file found at $CONFIG_FILE${RESET}"
 fi
 
 Show_help() {
   echo
-  echo "MoF - Media Organizer"
-  echo "  Organizes files by type"
-  echo "Usage: Mof [options] [Directory]"
+  echo -e "MoF - Media Organizer"
+  echo -e "  Organizes files by type"
+  echo -e "Usage: Mof [options] [Directory]"
   echo
-  echo "Options:"
-  echo "  -h,  --help       Show this messsage"
-  echo "  -l,  --local      Place sorted files into local folders instead of system folders"
-  echo "  -s,  --subfiles   Include subfiles in search"
-  echo "  -sf, --smartfind  Only include folders if all their subfolders contain one media type only"
-  echo "  -v,  --verbose    More detailed output"
-  echo "  -f,  --flatten    Flatten file system (ignores file structure)"
-  echo "  -b,  --blender    FOR ME hehe"
+  echo -e "Options:"
+  echo -e "  -h,  --help       Show this messsage"
+  echo -e "  -l,  --local      Place sorted files into local folders instead of system folders"
+  echo -e "  -s,  --subfiles   Include subfiles in search"
+  echo -e "  -S, --smartfind  Only include folders if all their subfolders contain one media type only"
+  echo -e "  -v,  --verbose    More detailed output"
+  echo -e "  -f,  --flatten    Flatten file system (ignores file structure)"
+  echo -e "  -b,  --blender    FOR ME hehe"
+  echo -e "  -H,  --human      Human readable prints"
   echo
-  echo "Notes:"
-  echo " - If no directory is specifed the current directory is used (can be changed in config)"
+  echo -e "Notes:"
+  echo -e " - If no directory is specifed the current directory is used (can be changed in config)"
 }
 
 # Scan options
@@ -74,7 +84,7 @@ while [[ $# -gt 0 ]]; do
       SUBFILES=true
       shift
       ;;
-    -sf|--smartfind)
+    -S|--smart)
       SMART=true
       shift
       ;;
@@ -86,10 +96,14 @@ while [[ $# -gt 0 ]]; do
       FLATTEN=true
       shift
       ;;
+    -H|--human)
+      HUMAN=true
+      shift
+      ;;
     -*)
       Show_help
       echo
-      echo $RED"Unknown option: $1 $RESET"
+      echo -e $RED"Unknown option: $1 $RESET"
       exit 1
       ;;
     *)
@@ -101,8 +115,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 if $VERBOSE; then 
-  echo $CYAN"[DETAIL] Directory: $TARGET_DIR"
-  echo $GREEN"[DETAIL] Scanning directory"
+  echo -e $CYAN"[DETAIL] Directory: $TARGET_DIR"
+  echo -e $GREEN"[DETAIL] Scanning directory"
 fi
 
 classify_file() {
@@ -110,24 +124,30 @@ classify_file() {
   case "$file" in
     *.jpg|*.jpeg|*.png|*.gif) 
       pictures+=("$file")
-      $VERBOSE && echo $GREEN"[FOUND]   $file${RESET}"
+      $VERBOSE && echo -e $GREEN"[FOUND]   $file${RESET}"
+      echo "HELLO"
+      (( pcount++ ))
       ;;
     *.mp3|*.wav|*.flac|*.ogg) 
       musics+=("$file")
-      $VERBOSE && echo $GREEN"[FOUND]   $file${RESET}"
+      $VERBOSE && echo -e $GREEN"[FOUND]   $file${RESET}"
+      (( mcount++ ))
       ;;
     *.mp4|*.mkv|*.webm) 
       videos+=("$file")
-      $VERBOSE && echo $GREEN"[FOUND]   $file${RESET}"
+      $VERBOSE && echo -e $GREEN"[FOUND]   $file${RESET}"
+      (( vcount++ ))
       ;;
     *.pdf|*.txt|*.docx|*.epub) 
       documents+=("$file")
-      $VERBOSE && echo $GREEN"[FOUND]   $file${RESET}"
+      $VERBOSE && echo -e $GREEN"[FOUND]   $file${RESET}"
+      (( dcount++ ))
       ;;
     *.blend1|*.blend)
       if $blender; then 
         blenders+=("$file")
-        $VERBOSE && echo $GREEN"[FOUND]   $file${RESET}"
+        (( bcount++ ))
+        $VERBOSE && echo -e $GREEN"[FOUND]   $file${RESET}"
       fi
       ;;
   esac
@@ -146,13 +166,13 @@ search() {
 
 
   for file in "$TARGET_DIR"/*; do
-     classify_file() $file
+     classify_file "$file"
   done
 
   if $SUBFILES; then 
-    for folder in $folders; then 
-      for file in "${folders[@]}"; then
-        classify_file() $file
+    for folder in $"${folders[@]}"; do
+      for file in "$folder"/*; do
+        classify_file "$file"
       done
     done
   fi
@@ -169,6 +189,7 @@ smart_search() {
   else
     folders=("$TARGET_DIR")
   fi
+
 
   for folder in "${folders[@]}"; do
     pic=0
@@ -198,20 +219,63 @@ smart_search() {
     fi
 
     if ((pic == total)); then
-      for file in "$folder"/*; do pictures+=("$file"); done
-      $VERBOSE && echo $MAGENTA"[SMART] Pictures folder: $folder${RESET}"
+      for file in "$folder"/*; do 
+        pictures+=("$file")
+        echo "hello"
+        (( pcount++ ))
+      done
+      $VERBOSE && echo -e $MAGENTA"[SMART] Pictures folder: $folder${RESET}"
     elif ((mus == total)); then
-      for file in "$folder"/*; do musics+=("$file"); done
-      $VERBOSE && echo $MAGENTA"[SMART] Music folder: $folder${RESET}"
+      for file in "$folder"/*; do 
+        musics+=("$file")
+        (( mcount++ ))
+      done
+      $VERBOSE && echo -e $MAGENTA"[SMART] Music folder: $folder${RESET}"
     elif ((vid == total)); then
-      for file in "$folder"/*; do videos+=("$file"); done
-      $VERBOSE && echo $MAGENTA"[SMART] Videos folder: $folder${RESET}"
+      for file in "$folder"/*; do 
+        videos+=("$file")
+        (( vcount++ ))
+      done
+      $VERBOSE && echo -e $MAGENTA"[SMART] Videos folder: $folder${RESET}"
     elif ((doc == total)); then
-      for file in "$folder"/*; do documents+=("$file"); done
-      $VERBOSE && echo $MAGENTA"[SMART] Documents folder: $folder${RESET}"
+      for file in "$folder"/*; do
+        documents+=("$file")
+        (( dcount++ ))
+      done
+      $VERBOSE && echo -e $MAGENTA"[SMART] Documents folder: $folder${RESET}"
     elif ((blend == total && $blender)); then
-      for file in "$folder"/*; do blenders+=("$file"); done
-      $VERBOSE && echo $MAGENTA"[SMART] Blender folder: $folder${RESET}"
+      for file in "$folder"/*; do
+        blenders+=("$file")
+        (( bcount++ ))
+      done
+      $VERBOSE && echo -e $MAGENTA"[SMART] Blender folder: $folder${RESET}"
     fi
   done
 }
+
+print_count() {
+  if (( pcount > 0 )); then
+    echo -e "${BLUE}[COUNT] $pcount Pictures${RESET}"
+  fi
+  if (( dcount > 0 )); then
+    echo -e "${BLUE}[COUNT] $dcount Documents${RESET}"
+  fi
+  if (( bcount > 0 )); then
+    echo -e "${BLUE}[COUNT] $bcount Blender files${RESET}"
+  fi
+  if (( vcount > 0 )); then
+    echo -e "${BLUE}[COUNT] $vcount Videos${RESET}"
+  fi
+  if (( mcount > 0 )); then
+    echo -e "${BLUE}[COUNT] $mcount Music${RESET}"
+  fi
+}
+
+if $SMART; then 
+  smart_search
+else 
+  search
+fi
+if $HUMAN; then
+  print_count
+fi
