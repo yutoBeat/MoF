@@ -1,9 +1,17 @@
 #! /usr/bin/zsh
 
+picturesdir="$HOME/Pictures/"
+musicdir="$HOME/Music/"
+videosdir="$HOME/Videos/"
+documentsdir="$HOME/Documents/"
+blenderdir="/media/spare/blender stuff/blender/blender voice"
+
+# lists
 pictures=()
 music=()
 videos=()
 documents=()
+blender=()
 
 # Define color variables
 RED='\033[31m'
@@ -20,7 +28,10 @@ SUBFILES=false
 SMART=false
 VERBOSE=false
 FLATTEN=false
+blender=false
 TARGET_DIR="."
+
+source "$HOME/.config/MoF.conf"
 
 Show_help() {
     echo
@@ -38,7 +49,7 @@ Show_help() {
     echo "  -b,  --blender    FOR ME hehe"
     echo
     echo "Notes:"
-    echo " - If no directory is specifed the current directory is used"
+    echo " - If no directory is specifed the current directory is used (can be changed in config)"
 }
 
 # Scan options
@@ -88,15 +99,40 @@ if $VERBOSE; then
 fi
 
 search() {
-  if [[ $SMART == false ]]; then
-    for file in "$TARGET_DIR"/*; do
-      case $file in
-        *.jpg|*.jpeg|*.png|*.gif) pictures+=("$file") ;;
-        *.mp3|*.wav|*.flac|*.ogg) musics+=("$file") ;;
-        *.mp4|*.mkv|*.webm) videos+=("$file") ;;
-        *.pdf|*.txt|*.docx|*.epub) documents+=("$file") ;;
-        *) echo "Other: $file" ;;
-      esac
-    done
-  fi
+  for file in "$TARGET_DIR"/*; do
+    case $file in
+      *.jpg|*.jpeg|*.png|*.gif) 
+        pictures+=("$file")
+        if $VERBOSE; then
+          echo $GREEN"[FOUND]   $file"
+        then
+        ;;
+      *.mp3|*.wav|*.flac|*.ogg) 
+        musics+=("$file") 
+        if $VERBOSE; then
+          echo $GREEN"[FOUND]   $file"
+        then
+        ;;
+      *.mp4|*.mkv|*.webm) 
+        videos+=("$file")  
+        if $VERBOSE; then
+          echo $GREEN"[FOUND]   $file"
+        then
+        ;;
+      *.pdf|*.txt|*.docx|*.epub) 
+        documents+=("$file")
+        if $VERBOSE; then
+          echo $GREEN"[FOUND]   $file"
+        fi
+        ;;
+      *.blend1|*.blend)
+        if $blender; then 
+          blender+=("$file")
+          if $VERBOSE; then
+            echo $GREEN"[FOUND]   $file"
+          fi
+        fi
+        ;;
+    esac
+  done
 }
