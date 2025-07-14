@@ -59,7 +59,7 @@ Show_help() {
   echo -e "  -h,  --help       Show this messsage"
   echo -e "  -l,  --local      Place sorted files into local folders instead of system folders"
   echo -e "  -s,  --subfiles   Include subfiles in search"
-  echo -e "  -S, --smartfind  Only include folders if all their subfolders contain one media type only"
+  echo -e "  -S, --smartfind   Only include folders if all their subfolders contain one media type only"
   echo -e "  -v,  --verbose    More detailed output"
   echo -e "  -f,  --flatten    Flatten file system (ignores file structure)"
   echo -e "  -b,  --blender    FOR ME hehe"
@@ -123,9 +123,8 @@ classify_file() {
   local file="$1"
   case "$file" in
     *.jpg|*.jpeg|*.png|*.gif) 
-      pictures+=("$file")
+      pictures+=("$(realpath "$file")")
       $VERBOSE && echo -e $GREEN"[FOUND]   $file${RESET}"
-      echo "HELLO"
       (( pcount++ ))
       ;;
     *.mp3|*.wav|*.flac|*.ogg) 
@@ -221,7 +220,6 @@ smart_search() {
     if ((pic == total)); then
       for file in "$folder"/*; do 
         pictures+=("$file")
-        echo "hello"
         (( pcount++ ))
       done
       $VERBOSE && echo -e $MAGENTA"[SMART] Pictures folder: $folder${RESET}"
@@ -271,11 +269,83 @@ print_count() {
   fi
 }
 
+
+movefiles() {
+  mkdir -p "$picturesdir"
+  movcount=0
+  for file in "${pictures[@]}"; do
+    dest="$picturesdir/$(basename "$file")"
+    
+    $VERBOSE && echo -e  $GREEN"[MOVING] ${RESET}$file → $dest"
+    if [ -f "$file" ]; then
+      mv "$file" "$dest"
+      (( movcount++ ))
+    else
+      echo -e "${RED}[ERROR] Source file does not exist: $file${RESET}"
+    fi
+  done
+  for file in "${Musics[@]}"; do
+    dest="$Musicdir/$(basename "$file")"
+    
+    $VERBOSE && echo -e  $GREEN"[MOVING] ${RESET}$file → $dest"
+    if [ -f "$file" ]; then
+      mv "$file" "$dest"
+      (( movcount++ ))
+    else
+      echo -e "${RED}[ERROR] Source file does not exist: $file${RESET}"
+    fi
+  done
+  for file in "${videos[@]}"; do
+    dest="$videosdir/$(basename "$file")"
+    
+    $VERBOSE && echo -e  $GREEN"[MOVING] ${RESET}$file → $dest"
+    if [ -f "$file" ]; then
+      mv "$file" "$dest"
+      (( movcount++ ))
+    else
+      echo -e "${RED}[ERROR] Source file does not exist: $file${RESET}"
+    fi
+  done
+  for file in "${documents[@]}"; do
+    dest="$documentsdir/$(basename "$file")"
+    
+    $VERBOSE && echo -e  $GREEN"[MOVING] ${RESET}$file → $dest"
+    if [ -f "$file" ]; then
+      mv "$file" "$dest"
+      (( movcount++ ))
+    else
+      echo -e "${RED}[ERROR] Source file does not exist: $file${RESET}"
+    fi
+  done
+  if $Blender; then
+    for file in "${blenders[@]}"; do
+      dest="$blenderdir/$(basename "$file")"
+    
+     $VERBOSE && echo -e  $GREEN"[MOVING] ${RESET}$file → $dest"
+      if [ -f "$file" ]; then
+        mv "$file" "$dest"
+        (( movcount++ ))
+      else
+        echo -e "${RED}[ERROR] Source file does not exist: $file${RESET}"
+      fi
+    done
+  fi
+  echo -e $GREEN"[MOVED] $movcount "
+
+
+
+
+}
+
+
 if $SMART; then 
   smart_search
 else 
   search
 fi
-if $HUMAN; then
+if $HUMAN || $VERBOSE; then
   print_count
 fi
+movefiles
+
+
