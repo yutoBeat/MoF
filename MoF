@@ -1,0 +1,102 @@
+#! /usr/bin/zsh
+
+pictures=()
+music=()
+videos=()
+documents=()
+
+# Define color variables
+RED='\033[31m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+MAGENTA='\033[35m'
+CYAN='\033[36m'
+RESET='\033[0m'
+
+# Default values
+LOCAL=false
+SUBFILES=false
+SMART=false
+VERBOSE=false
+FLATTEN=false
+TARGET_DIR="."
+
+Show_help() {
+    echo
+    echo "MoF - Media Organizer"
+    echo "  Organizes files by type"
+    echo "Usage: Mof [options] [Directory]"
+    echo
+    echo "Options:"
+    echo "  -h,  --help       Show this messsage"
+    echo "  -l,  --local      Place sorted files into local folders instead of system folders"
+    echo "  -s,  --subfiles   Include subfiles in search"
+    echo "  -sf, --smartfind  Only include folders if all their subfolders contain one media type only"
+    echo "  -v,  --verbose    More detailed output"
+    echo "  -f,  --flatten    Flatten file system (ignores file structure)"
+    echo "  -b,  --blender    FOR ME hehe"
+    echo
+    echo "Notes:"
+    echo " - If no directory is specifed the current directory is used"
+}
+
+# Scan options
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help)
+      Show_help
+      exit 0
+      ;;
+    -l|--local)
+      LOCAL=true
+      shift
+      ;;
+    -s|--subfiles)
+      SUBFILES=true
+      shift
+      ;;
+    -sf|--smartfind)
+      SMART=true
+      shift
+      ;;
+    -v|--VERBOSE)
+      VERBOSE=true
+      shift
+      ;;
+    -f|--flatten)
+      FLATTEN=true
+      shift
+      ;;
+    -*)
+      Show_help
+      echo
+      echo $RED"Unknown option: $1 $RESET"
+      exit 1
+      ;;
+    *)
+      # asume its the specifed directory
+      TARGET_DIR="$1"
+      shift
+      ;;
+  esac
+done
+
+if $VERBOSE; then 
+  echo $CYAN"[DETAIL] Directory: $TARGET_DIR"
+  echo $GREEN"[DETAIL] Scanning directory"
+fi
+
+search() {
+  if [[ $SMART == false ]]; then
+    for file in "$TARGET_DIR"/*; do
+      case $file in
+        *.jpg|*.jpeg|*.png|*.gif) pictures+=("$file") ;;
+        *.mp3|*.wav|*.flac|*.ogg) musics+=("$file") ;;
+        *.mp4|*.mkv|*.webm) videos+=("$file") ;;
+        *.pdf|*.txt|*.docx|*.epub) documents+=("$file") ;;
+        *) echo "Other: $file" ;;
+      esac
+    done
+  fi
+}
