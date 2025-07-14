@@ -8,10 +8,10 @@ blenderdir="/media/spare/blender stuff/blender/blender voice"
 
 # lists
 pictures=()
-music=()
+musics=()
 videos=()
 documents=()
-blender=()
+blenders=()
 
 # Define color variables
 RED='\033[31m'
@@ -31,7 +31,14 @@ FLATTEN=false
 blender=false
 TARGET_DIR="."
 
-source "$HOME/.config/MoF.conf"
+
+CONFIG_FILE="$HOME/.config/MoF.conf"
+
+if [[ -f "$CONFIG_FILE" ]]; then
+  source "$CONFIG_FILE"
+else
+  echo "${YELLOW}[WARN] No config file found at $CONFIG_FILE${RESET}"
+fi
 
 Show_help() {
   echo
@@ -86,7 +93,7 @@ while [[ $# -gt 0 ]]; do
       exit 1
       ;;
     *)
-      # asume its the specifed directory
+      # asume its the spescifed directory
       TARGET_DIR="$1"
       shift
       ;;
@@ -98,41 +105,113 @@ if $VERBOSE; then
   echo $GREEN"[DETAIL] Scanning directory"
 fi
 
+classify_file() {
+  local file="$1"
+  case "$file" in
+    *.jpg|*.jpeg|*.png|*.gif) 
+      pictures+=("$file")
+      $VERBOSE && echo $GREEN"[FOUND]   $file${RESET}"
+      ;;
+    *.mp3|*.wav|*.flac|*.ogg) 
+      musics+=("$file")
+      $VERBOSE && echo $GREEN"[FOUND]   $file${RESET}"
+      ;;
+    *.mp4|*.mkv|*.webm) 
+      videos+=("$file")
+      $VERBOSE && echo $GREEN"[FOUND]   $file${RESET}"
+      ;;
+    *.pdf|*.txt|*.docx|*.epub) 
+      documents+=("$file")
+      $VERBOSE && echo $GREEN"[FOUND]   $file${RESET}"
+      ;;
+    *.blend1|*.blend)
+      if $blender; then 
+        blenders+=("$file")
+        $VERBOSE && echo $GREEN"[FOUND]   $file${RESET}"
+      fi
+      ;;
+  esac
+}
+
+
+
 search() {
+  folders=()
+
+  if $SUBFILES; then
+    while IFS= read -r -d '' dir; do
+      folders+=("$dir")
+    done < <(find "$TARGET_DIR" -type d -print0)
+  fi
+
+
   for file in "$TARGET_DIR"/*; do
-    case $file in
-      *.jpg|*.jpeg|*.png|*.gif) 
-        pictures+=("$file")
-        if $VERBOSE; then
-          echo $GREEN"[FOUND]   $file"
-        then
-        ;;
-      *.mp3|*.wav|*.flac|*.ogg) 
-        musics+=("$file") 
-        if $VERBOSE; then
-          echo $GREEN"[FOUND]   $file"
-        then
-        ;;
-      *.mp4|*.mkv|*.webm) 
-        videos+=("$file")  
-        if $VERBOSE; then
-          echo $GREEN"[FOUND]   $file"
-        then
-        ;;
-      *.pdf|*.txt|*.docx|*.epub) 
-        documents+=("$file")
-        if $VERBOSE; then
-          echo $GREEN"[FOUND]   $file"
-        fi
-        ;;
-      *.blend1|*.blend)
-        if $blender; then 
-          blender+=("$file")
-          if $VERBOSE; then
-            echo $GREEN"[FOUND]   $file"
-          fi
-        fi
-        ;;
-    esac
+     classify_file() $file
+  done
+
+  if $SUBFILES; then 
+    for folder in $folders; then 
+      for file in "${folders[@]}"; then
+        classify_file() $file
+      done
+    done
+  fi
+}
+
+
+smart_search() {
+  folders=()
+
+  if $SUBFILES; then
+    while IFS= read -r -d '' dir; do
+      folders+=("$dir")
+    done < <(find "$TARGET_DIR" -type d -print0)
+  else
+    folders=("$TARGET_DIR")
+  fi
+
+  for folder in "${folders[@]}"; do
+    pic=0
+    mus=0
+    vid=0
+    doc=0
+    blend=0
+    other=0
+
+    for file in "$folder"/*; do
+      [[ -f "$file" ]] || continue
+
+      case "$file" in
+        *.jpg|*.jpeg|*.png|*.gif) ((pic++)) ;;
+        *.mp3|*.wav|*.flac|*.ogg) ((mus++)) ;;
+        *.mp4|*.mkv|*.webm) ((vid++)) ;;
+        *.pdf|*.txt|*.docx|*.epub) ((doc++)) ;;
+        *.blend1|*.blend) ((blend++)) ;;
+        *) ((other++)) ;;
+      esac
+    done
+
+    total=$((pic + mus + vid + doc + blend + other))
+
+    if ((total == 0)); then
+      continue  # skip empty folders
+    fi
+
+    if ((pic == total)); then
+      for file in "$folder"/*; do pictures+=("$file"); done
+      $VERBOSE && echo $MAGENTA"[SMART] Pictures folder: $folder${RESET}"
+    elif ((mus == total)); then
+      for file in "$folder"/*; do musics+=("$file"); done
+      $VERBOSE && echo $MAGENTA"[SMART] Music folder: $folder${RESET}"
+    elif ((vid == total)); then
+      for file in "$folder"/*; do videos+=("$file"); done
+      $VERBOSE && echo $MAGENTA"[SMART] Videos folder: $folder${RESET}"
+    elif ((doc == total)); then
+      for file in "$folder"/*; do documents+=("$file"); done
+      $VERBOSE && echo $MAGENTA"[SMART] Documents folder: $folder${RESET}"
+    elif ((blend == total && $blender)); then
+      for file in "$folder"/*; do blenders+=("$file"); done
+      $VERBOSE && echo $MAGENTA"[SMART] Blender folder: $folder${RESET}"
+    fi
   done
 }
