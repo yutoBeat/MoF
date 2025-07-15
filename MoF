@@ -59,10 +59,10 @@ Show_help() {
   echo -e "  -h,  --help       Show this messsage"
   echo -e "  -l,  --local      Place sorted files into local folders instead of system folders"
   echo -e "  -s,  --subfiles   Include subfiles in search"
-  echo -e "  -S, --smartfind   Only include folders if all their subfolders contain one media type only"
+  echo -e "  -S,  --smartfind  Only include folders if all their subfolders contain one media type only"
   echo -e "  -v,  --verbose    More detailed output"
   echo -e "  -f,  --flatten    Flatten file system (ignores file structure)"
-  echo -e "  -b,  --blender    FOR ME hehe"
+  echo -e "  -b,  --blender    Moves .blend and blend1 files"
   echo -e "  -H,  --human      Human readable prints"
   echo
   echo -e "Notes:"
@@ -118,6 +118,23 @@ if $VERBOSE; then
   echo -e $CYAN"[DETAIL] Directory: $TARGET_DIR"
   echo -e $GREEN"[DETAIL] Scanning directory"
 fi
+
+make_local() {
+  mkdir -p "./pictures"
+  mkdir -p "./music"
+  mkdir -p "./video"
+  mkdir -p "./documents"
+  $blender && mkdir -p "./blender"
+
+  picturesdir="./Pictures"
+  musicdir="./Music"
+  videosdir="./Videos"
+  documentsdir="./Documents"
+  $blender && blenderdir="./blender"
+}
+
+
+
 
 classify_file() {
   local file="$1"
@@ -219,33 +236,68 @@ smart_search() {
 
     if ((pic == total)); then
       for file in "$folder"/*; do 
-        pictures+=("$file")
-        (( pcount++ ))
+        if $FLATTEN; then
+          pictures+=("$file")
+          (( pcount++ ))
+        else
+          pictures+=("$(realpath "$folder")")
+          for file in "$folder"/*; do 
+            (( pcount++ ))
+          done
+        fi
       done
       $VERBOSE && echo -e $MAGENTA"[SMART] Pictures folder: $folder${RESET}"
     elif ((mus == total)); then
-      for file in "$folder"/*; do 
-        musics+=("$file")
-        (( mcount++ ))
-      done
+      if $FLATTEN; then
+        for file in "$folder"/*; do 
+          musics+=("$file")
+          (( mcount++ ))
+        done
+      else
+        musics+=("$(realpath "$folder")")
+        for file in "$folder"/*; do 
+          (( mcount++ ))
+        done
+      fi
       $VERBOSE && echo -e $MAGENTA"[SMART] Music folder: $folder${RESET}"
     elif ((vid == total)); then
-      for file in "$folder"/*; do 
-        videos+=("$file")
-        (( vcount++ ))
-      done
+      if $FLATTEN; then
+        for file in "$folder"/*; do 
+          videos+=("$file")
+          (( vcount++ ))
+        done
+      else
+        videos+=("$(realpath "$folder")")
+        for file in "$folder"/*; do 
+          (( vcount++ ))
+        done
+      fi
       $VERBOSE && echo -e $MAGENTA"[SMART] Videos folder: $folder${RESET}"
     elif ((doc == total)); then
-      for file in "$folder"/*; do
-        documents+=("$file")
-        (( dcount++ ))
-      done
+      if $FLATTEN; then
+        for file in "$folder"/*; do
+          documents+=("$file")
+          (( dcount++ ))
+        done
+      else
+        documents+=("$(realpath "$folder")")
+        for file in "$folder"/*; do 
+          (( dcount++ ))
+        done
+      fi
       $VERBOSE && echo -e $MAGENTA"[SMART] Documents folder: $folder${RESET}"
     elif ((blend == total && $blender)); then
-      for file in "$folder"/*; do
-        blenders+=("$file")
-        (( bcount++ ))
-      done
+      if $FLATTEN; then
+        for file in "$folder"/*; do
+          blenders+=("$file")
+          (( bcount++ ))
+        done
+      else
+        documents+=("$(realpath "$folder")")
+        for file in "$folder"/*; do 
+          (( bcount++ ))
+        done
+      fi
       $VERBOSE && echo -e $MAGENTA"[SMART] Blender folder: $folder${RESET}"
     fi
   done
@@ -269,6 +321,10 @@ print_count() {
   fi
 }
 
+get_count() {
+  local total=$(( ${#pictures[@]} + ${#documents[@]} + ${#videos[@]} + ${#musics[@]} + ${#blenders[@]} ))
+  echo "$total"
+}
 
 movefiles() {
   mkdir -p "$picturesdir"
@@ -330,22 +386,35 @@ movefiles() {
       fi
     done
   fi
+  #print amount moved
   echo -e $GREEN"[MOVED] $movcount "
-
-
-
-
 }
 
+# PROGRAM ORDER 
+#
+# search
+# * print count
+# * make directorys
+# move 
+# * print move count
+#
+# * (optional)
 
+#search
 if $SMART; then 
   smart_search
 else 
   search
 fi
+#print search
 if $HUMAN || $VERBOSE; then
   print_count
 fi
+#make directorys
+if (( get_count > 0 )) && $LOCAL; then
+  make_local
+fi
+# move and print move count 
 movefiles
 
 
