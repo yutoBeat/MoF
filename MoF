@@ -1,6 +1,8 @@
 
 #!/usr/bin/env zsh
 
+userhome=$(getent passwd "${SUDO_USER:-$USER}" | cut -d: -f6)
+
 picturesdir="$HOME/Pictures"
 musicdir="$HOME/Music"
 videosdir="$HOME/Videos"
@@ -59,7 +61,7 @@ Show_help() {
   echo -e "  -h,  --help       Show this messsage"
   echo -e "  -l,  --local      Place sorted files into local folders instead of system folders"
   echo -e "  -s,  --subfiles   Include subfiles in search"
-  echo -e "  -S,  --smartfind  Only include folders if all their subfolders contain one media type only"
+  echo -e "  -S,  --smartfind  Only include folders if all it contains only one media type only"
   echo -e "  -v,  --verbose    More detailed output"
   echo -e "  -f,  --flatten    Flatten file system (ignores file structure)"
   echo -e "  -b,  --blender    Moves .blend and blend1 files"
@@ -185,7 +187,7 @@ search() {
      classify_file "$file"
   done
 
-  if $SUBFILES; then 
+  if $SUBFILES && ! $SMART; then 
     for folder in $"${folders[@]}"; do
       for file in "$folder"/*; do
         classify_file "$file"
@@ -196,6 +198,7 @@ search() {
 
 
 smart_search() {
+  search
   folders=()
 
   if $SUBFILES; then
@@ -214,19 +217,20 @@ smart_search() {
     doc=0
     blend=0
     other=0
-
-    for file in "$folder"/*; do
-      [[ -f "$file" ]] || continue
-
-      case "$file" in
-        *.jpg|*.jpeg|*.png|*.gif) ((pic++)) ;;
-        *.mp3|*.wav|*.flac|*.ogg) ((mus++)) ;;
-        *.mp4|*.mkv|*.webm) ((vid++)) ;;
-        *.pdf|*.txt|*.docx|*.epub) ((doc++)) ;;
-        *.blend1|*.blend) ((blend++)) ;;
-        *) ((other++)) ;;
-      esac
-    done
+    if [ "$(realpath "$folder")" != "$(realpath "$TARGET_DIR")" ]; then 
+      for file in "$folder"/*; do
+        [[ -f "$file" ]] || continue 
+        name="$(basename "$file")"
+        case "$name" in
+          *.jpg|*.jpeg|*.png|*.gif) ((pic++)) ;;
+          *.mp3|*.wav|*.flac|*.ogg) ((mus++)) ;;
+          *.mp4|*.mkv|*.webm) ((vid++)) ;;
+          *.pdf|*.txt|*.docx|*.epub) ((doc++)) ;;
+          *.blend1|*.blend) ((blend++)) ;;
+          *) ((other++)) ;;
+        esac
+      done
+    fi
 
     total=$((pic + mus + vid + doc + blend + other))
 
@@ -240,10 +244,8 @@ smart_search() {
           pictures+=("$file")
           (( pcount++ ))
         else
-          pictures+=("$(realpath "$folder")")
-          for file in "$folder"/*; do 
-            (( pcount++ ))
-          done
+          pictures+=("$( "$folder")")
+          (( pcount++ ))
         fi
       done
       $VERBOSE && echo -e $MAGENTA"[SMART] Pictures folder: $folder${RESET}"
@@ -255,9 +257,7 @@ smart_search() {
         done
       else
         musics+=("$(realpath "$folder")")
-        for file in "$folder"/*; do 
           (( mcount++ ))
-        done
       fi
       $VERBOSE && echo -e $MAGENTA"[SMART] Music folder: $folder${RESET}"
     elif ((vid == total)); then
@@ -267,7 +267,7 @@ smart_search() {
           (( vcount++ ))
         done
       else
-        videos+=("$(realpath "$folder")")
+        videos+=("$( "$folder")")
         for file in "$folder"/*; do 
           (( vcount++ ))
         done
@@ -280,7 +280,7 @@ smart_search() {
           (( dcount++ ))
         done
       else
-        documents+=("$(realpath "$folder")")
+        documents+=("$( "$folder")")
         for file in "$folder"/*; do 
           (( dcount++ ))
         done
@@ -293,7 +293,7 @@ smart_search() {
           (( bcount++ ))
         done
       else
-        documents+=("$(realpath "$folder")")
+        documents+=("$( "$folder")")
         for file in "$folder"/*; do 
           (( bcount++ ))
         done
@@ -340,8 +340,8 @@ movefiles() {
       echo -e "${RED}[ERROR] Source file does not exist: $file${RESET}"
     fi
   done
-  for file in "${Musics[@]}"; do
-    dest="$Musicdir/$(basename "$file")"
+  for file in "${musics[@]}"; do
+    dest="$musicdir/$(basename "$file")"
     
     $VERBOSE && echo -e  $GREEN"[MOVING] ${RESET}$file → $dest"
     if [ -f "$file" ]; then
